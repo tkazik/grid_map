@@ -22,7 +22,7 @@ grid_map_filters:
     params:
       input_layer: elevation
       output_layer: elevation_inpainted
-      radius: 0.05
+      radius: 1.0 #0.05
 
   # Reduce noise with a radial blurring filter.
   - name: mean_in_radius
@@ -39,4 +39,11 @@ grid_map_filters:
       output_layer: roughness
       expression: abs(elevation_inpainted - elevation_smooth)
 
+
+  # Compute curvature(second derivative of height).
+  - name: curvature
+    type: gridMapFilters/CurvatureFilter
+    params:
+      input_layer: elevation_inpainted
+      output_layer: curvature
 
