@@ -25,9 +25,12 @@ class SignedDistanceField
   virtual ~SignedDistanceField();
 
   void calculateSignedDistanceField(const GridMap& gridMap, const std::string& layer, const double heightClearance);
+  void calculateSignedDistanceFieldSeb(const GridMap& gridMap, const std::string& layer);
   double getDistanceAt(const Position3& position) const;
   Vector3 getDistanceGradientAt(const Position3& position) const;
+  Vector3 getDistanceGradientAtSeb(const Position3& position) const;
   double getInterpolatedDistanceAt(const Position3& position) const;
+  double getInterpolatedDistanceAtSeb(const Position3& position) const;
   void convertToPointCloud(pcl::PointCloud<pcl::PointXYZI>& points) const;
 
  private:
