@@ -55,7 +55,7 @@ void FiltersDemo::callback(const grid_map_msgs::GridMap& message)
   // Convert message to map.
   GridMap inputMap;
   GridMapRosConverter::fromMessage(message, inputMap);
-  ROS_INFO_STREAM("inside FiltersDemo::callback to do filterChain_.update");
+  //ROS_INFO_STREAM("inside FiltersDemo::callback to do filterChain_.update");
   // Apply filter chain.
   grid_map::GridMap outputMap;
   if (!filterChain_.update(inputMap, outputMap)) {
