@@ -29,6 +29,32 @@ SignedDistanceField::~SignedDistanceField()
 {
 }
 
+void SignedDistanceField::calculateSignedDistanceFieldSeb(const GridMap& gridMap, const std::string& layer)
+{
+  data_.clear();
+  resolution_ = gridMap.getResolution();
+  position_ = gridMap.getPosition();
+  size_ = gridMap.getSize();
+  Matrix map = gridMap.get(layer); // Copy!
+
+  std::vector<Matrix> sdf;
+
+  // Calculate signed distance only one layer.
+    Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> obstacleFreeField = map.array() < 10;//10 is our threshold value of the slope thresholding filter
+    Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> obstacleField = obstacleFreeField.array() < 1;
+    Matrix sdfObstacle = getPlanarSignedDistanceField(obstacleField);
+    Matrix sdfObstacleFree = getPlanarSignedDistanceField(obstacleFreeField);
+    Matrix sdf2d;
+    // If 2d sdfObstacleFree calculation failed, neglect this SDF
+    // to avoid extreme small distances (-INF).
+    if ((sdfObstacleFree.array() >= INF).any()) sdf2d = sdfObstacle;
+    else sdf2d = sdfObstacle - sdfObstacleFree;
+    sdf2d *= resolution_;
+    data_.push_back(sdf2d);
+}
+
+
+
 void SignedDistanceField::calculateSignedDistanceField(const GridMap& gridMap, const std::string& layer,
                                                        const double heightClearance)
 {
@@ -140,6 +166,27 @@ double SignedDistanceField::getInterpolatedDistanceAt(const Position3& position)
   return data_[k](i, j) + gradient.dot(error);
 }
 
+double SignedDistanceField::getInterpolatedDistanceAtSeb(const Position3& position) const
+{
+  double xCenter = size_.x() / 2.0;
+  double yCenter = size_.y() / 2.0;
+  int i = std::round(xCenter - (position.x() - position_.x()) / resolution_);
+  int j = std::round(yCenter - (position.y() - position_.y()) / resolution_);
+  int k = 0;
+  i = std::max(i, 0);
+  i = std::min(i, size_.x() - 1);
+  j = std::max(j, 0);
+  j = std::min(j, size_.y() - 1);
+  Vector3 gradient = getDistanceGradientAtSeb(position);
+  double xp = position_.x() + ((size_.x() - i) - xCenter) * resolution_;
+  double yp = position_.y() + ((size_.y() - j) - yCenter) * resolution_;
+  double zp = 0;
+  Vector3 error = position - Vector3(xp, yp, zp);
+  error(2) = 0;
+  return data_[k](i, j) + gradient.dot(error);
+}
+
+
 Vector3 SignedDistanceField::getDistanceGradientAt(const Position3& position) const
 {
   double xCenter = size_.x() / 2.0;
@@ -158,6 +205,24 @@ Vector3 SignedDistanceField::getDistanceGradientAt(const Position3& position) co
   double dz = (data_[k + 1](i, j) - data_[k - 1](i, j)) / (2 * resolution_);
   return Vector3(dx, dy, dz);
 }
+
+Vector3 SignedDistanceField::getDistanceGradientAtSeb(const Position3& position) const
+{
+  double xCenter = size_.x() / 2.0;
+  double yCenter = size_.y() / 2.0;
+  int i = std::round(xCenter - (position.x() - position_.x()) / resolution_);
+  int j = std::round(yCenter - (position.y() - position_.y()) / resolution_);
+  int k = 0;
+  i = std::max(i, 1);
+  i = std::min(i, size_.x() - 2);
+  j = std::max(j, 1);
+  j = std::min(j, size_.y() - 2);
+  double dx = (data_[k](i - 1, j) - data_[k](i + 1, j)) / (2 * resolution_);
+  double dy = (data_[k](i, j - 1) - data_[k](i, j + 1)) / (2 * resolution_);
+  double dz = 0;
+  return Vector3(dx, dy, dz);
+}
+
 
 void SignedDistanceField::convertToPointCloud(pcl::PointCloud<pcl::PointXYZI>& points) const
 {
